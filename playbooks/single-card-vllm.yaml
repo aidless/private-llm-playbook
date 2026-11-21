@@ -1,0 +1,31 @@
+# 6GB 级消费卡私有化部署路线（Qwen3-4B-AWQ / vLLM）
+#
+# 全部实测数字来自 vllm-serving-card（2026-11-09 实测，RTX 3060 Laptop 6GB），
+# 本文件只做引用与组织，不产生新数字。本地核对证据：
+#   test -f ../vllm-serving-card/results/card.json
+title: 6GB 单卡 vLLM 私有化部署（Qwen3-4B-AWQ）
+steps:
+  - id: hw-matrix
+    title: 硬件矩阵登记（显存/驱动/软件栈/权重体积）
+    done: true
+    evidence_cite: "vllm-serving-card/results/environment.txt + README.md 环境表（vLLM 0.33.0 / torch 2.14.0+cu130 / 权重 2.5 GiB / KV cache 2.09 GiB / 15,232 tokens，2026-11-09）"
+  - id: serve-cmd
+    title: 服务启动命令（含关 FlashInfer 采样器、本地 tokenizer、离线变量三个坑）
+    done: true
+    evidence_cite: "vllm-serving-card/README.md「环境与启动」一节（VLLM_USE_FLASHINFER_SAMPLER=0、HF_HUB_OFFLINE=1、--max-model-len 2048 --gpu-memory-utilization 0.90 --enforce-eager，2026-11-09）"
+  - id: slo-tiers
+    title: 三档并发压测定 SLO（交互式并发上限 4：TTFT p99 481.2 ms；批处理吃 16 档）
+    done: true
+    evidence_cite: "vllm-serving-card/README.md 三档实测表（c=4: TTFT p99 481.2ms / c=16: 261.41 tok/s 13.1×、电费 ¥0.043/1M out tok，2026-11-09）"
+  - id: cost-ledger
+    title: 成本账（GPU·min 与电费每 1M 输出 token，c=1 833.9min → c=16 63.8min）
+    done: true
+    evidence_cite: "vllm-serving-card/README.md 成本两列 + results/power-c*.csv 板功率原始采样（2026-11-09）"
+  - id: acceptance-gate
+    title: 验收闸接入（ttftkit：limits/regressions/invariance 三类规则，退出码 0/1/2）
+    done: true
+    evidence_cite: "ttftkit/README.md「门禁」一节 + tests/test_gate_invariance.py（batch 不变性闸 v0.3.0，2026-11-10）"
+  - id: recompute-cmd
+    title: 数字可复算命令登记（python3 parse_results.py，全部数字从 results/ 原始文件重算）
+    done: true
+    evidence_cite: "vllm-serving-card/README.md 开头 + vllm-serving-card/parse_results.py（2026-11-09）"

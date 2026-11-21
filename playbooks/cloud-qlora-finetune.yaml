@@ -1,0 +1,27 @@
+# 云端 QLoRA 微调 → 本地私有化部署路线
+#
+# 微调栈引用 paper_agent（Qwen3-4B QLoRA 4bit NF4 + LoRA adapter，SFT 跑通，
+# DPO 在 6GB 卡 OOM 后封存——诚实边界，不宣称可用）；云端通道引用 amd-radeon-cloud
+# 诊断手册（2026-10-21 核实）。本文件不产生新数字。
+title: 云端 QLoRA 微调 + 本地私有化部署
+steps:
+  - id: finetune-stack
+    title: QLoRA 训练栈就绪（train_agent.py SFT 跑通；train_dpo.py 6GB 卡 OOM 封存）
+    done: true
+    evidence_cite: "paper_agent/README.md + paper_agent/train/（SFT + 证据绑定样本构造，DPO 封存边界见 README 第 77-81 行，2026-11 前）"
+  - id: cloud-channel
+    title: 云端算力通道与额度诊断（30 秒只读自检，区分 capacity 不足 vs 额度耗尽）
+    done: true
+    evidence_cite: "amd-radeon-cloud/README.md + amd-radeon-cloud/diagnose.js（官方 FAQ 四条原因逐条诊断，2026-10-21 核实）"
+  - id: data-binding
+    title: 训练数据证据绑定（每样本强制 evidence_refs + arxiv_grounding）
+    done: true
+    evidence_cite: "paper_agent/README.md「证据绑定是结构性的」一节 + paper_agent/build_sft.py（2026-11 前）"
+  - id: deploy-route
+    title: 微调产物回本地部署（vLLM LoRA 挂载 + ttftkit 闸验收）
+    done: true
+    evidence_cite: "ttftkit/results/invariance-2026-11-10/deploy-verdict.md @ 2026-11-10（vLLM 0.33.0 AWQ 底模 + --enable-lora 挂载 p1v2/agent adapter，8/8 成功，limits 闸 exit=0：TTFT p99 684.4ms / TPOT p99 177.1ms；adapter 合并进 AWQ 权重无意义，挂载即部署路线）"
+  - id: determinism-acceptance
+    title: 确定性验收（flag=1 + LoRA 同时成立才敢承诺「可复现」；延迟另算）
+    done: true
+    evidence_cite: "ttftkit/results/invariance-2026-11-10/verdict-queries40-lora.md @ 2026-11-19（VLLM_BATCH_INVARIANT=1 + --enable-lora 挂 p1v2，40 条不同 query：c=4 与 c=16 均 0/40 分歧、Wilson 上界 0.088 → PASS_DECISIVE；同一次 evaluate() 的 limits 闸 FAIL：c=4 TTFT p99 4752.3ms / TPOT p99 259-261ms。即「确定性买到了、延迟没买到」，两条轴分开承诺）"
